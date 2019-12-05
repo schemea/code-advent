@@ -2,7 +2,7 @@
   "name": "code-advent",
   "version": "1.0.0",
   "description": "",
-  "main": "1.js",
+  "main": "1.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
