@@ -6,6 +6,11 @@ const input = [
 ];
 
 // const input = [
+//     ["R98","U47","R26","D63","R33","U87","L62","D20","R33","U53","R51"],
+//     ["U98","R91","D20","R16","D67","R40","U7","R15","U6","R7"  ],
+// ];
+
+// const input = [
 //     [ "R8", "U5", "L5", "D3" ],
 //     [ "U7", "R6", "D4", "L4" ],
 // ];
@@ -32,6 +37,7 @@ interface Segment {
     axis: Axis;
     wire: number;
     extremity: number;
+    distance: number;
 }
 
 let grid: Grid = {};
@@ -46,15 +52,23 @@ function getDirection(direction: Direction) {
             return { axis: Axis.Y, direction: 1 };
         case Direction.LEFT:
             return { axis: Axis.X, direction: -1 };
+        default:
+            throw "invalid direction: " + direction;
     }
 }
 
-function get(x: number, y: number) {
+function getCell(x: number, y: number) {
     const gridX = grid[x] || (grid[x] = {});
     return gridX[y] || (gridX[y] = []);
 }
 
-const intersections: { x: number, y: number }[] = [];
+interface Intersection {
+    x: number;
+    y: number;
+    steps: number;
+}
+
+let intersections: Intersection[] = [];
 
 function drawPath(path: string[], id: number) {
     const pos = {
@@ -62,63 +76,102 @@ function drawPath(path: string[], id: number) {
         y: 0,
     };
 
-    path.forEach(movement => {
-        const delta = getDirection(movement[0] as Direction);
-        const value = parseInt(movement.substring(1)) * delta.direction;
+    let distance = -1;
 
-        const start = pos[delta.axis];
+    path.forEach(movement => {
+        const action = movement[0];
+
+        if (action === "M" || action === "m") {
+            const m = /([-+]?\d+)(?::([-+]?\d+))?/.exec(movement);
+
+            if (m) {
+                const dx = parseInt(m[1]) || 0;
+                const dy = parseInt(m[2]) || 0;
+
+                if (action === "m") {
+                    pos.x += dx;
+                    pos.y += dy;
+                } else {
+                    pos.x = dx;
+                    pos.y = dy;
+                }
+            }
+
+            return;
+        }
+
+        const delta = getDirection(action.toUpperCase() as Direction);
+        let value   = parseInt(movement.substring(1)) * delta.direction;
+
+        if (!value  ) {
+            throw "invalid value: " + movement;
+        }
+
+        if (Math.sign(value) !== Math.sign(delta.direction)) {
+            delta.direction *= -1;
+        }
+
+        const start = pos[delta.axis] + delta.direction;
         const end   = start + value;
 
-        for (let i = start; i !== end; i += delta.direction) {
-            let extremity = 0;
+        function add(x: number, y: number, extremity = 0) {
+            const cell = getCell(pos.x, pos.y);
 
-            if (i === start) {
-                extremity = delta.direction;
-            } else if (i === end - delta.direction) {
-                extremity = -delta.direction;
+            if (!cell.find(segment => segment.wire === id)) {
+                ++distance;
+
+                if (cell.length > 0 && distance > 0) {
+                    intersections.push({
+                        x: pos.x,
+                        y: pos.y,
+                        steps: cell.reduce((sum, segment) => sum + segment.distance, distance),
+                    });
+                }
             }
-
-            pos[delta.axis] = i;
-
-            const node = get(pos.x, pos.y);
-
-            if (!node.find(segment => segment.wire === id) && node.length > 0) {
-                intersections.push({ x: pos.x, y: pos.y });
-            }
-
-            node.push({ axis: delta.axis, wire: id, extremity });
+            cell.push({ axis: delta.axis, wire: id, extremity, distance });
         }
+
+        add(pos.x, pos.y, delta.direction);
+
+        for (let i = start; i !== end - delta.direction; i += delta.direction) {
+            pos[delta.axis] = i;
+            add(pos.x, pos.y);
+        }
+
+        pos[delta.axis] += delta.direction;
+
+        add(pos.x, pos.y, -delta.direction);
     })
 }
 
 function getClosestIntersection() {
-    const ans = intersections.map(value => Math.abs(value.x) + Math.abs(value.y)).filter(x => x > 0).sort((a, b) => a - b).find(x => x > 0);
-    return ans;
+    return intersections.map(value => Math.abs(value.x) + Math.abs(value.y)).sort((a, b) => a - b).find(x => x > 0);
 }
-drawPath(input[0], 0);
-drawPath(input[1], 1);
 
-console.log(getClosestIntersection());
+function getShortestIntersection() {
+    return intersections.map(value => value.steps).sort((a, b) => a - b).find(x => x > 0);
+}
+
+input.forEach(drawPath);
+
+console.log("closest:", getClosestIntersection());
+console.log("shortest:", getShortestIntersection());
 
 
 /** DRAWING */
 
-if (document) {
+if (typeof document !== "undefined") {
     function addElement(tagname: string, parent: HTMLElement = document.body) {
         return parent.appendChild(document.createElement(tagname));
     }
 
-    const form = addElement("form") as HTMLFormElement;
-    const inputElement = addElement("textarea", form) as HTMLInputElement;
-    const submit = addElement("input", form) as HTMLInputElement;
+    const inputElement = addElement("textarea") as HTMLInputElement;
 
-    submit.type = "submit";
+    inputElement.addEventListener("input", (ev) => {
+        grid          = {};
+        intersections = [];
 
-    form.addEventListener("submit", (ev) => {
-        ev.preventDefault();
-
-        grid = {};
-       inputElement.value.split('\n').map(x => x.split(",").filter(x => x)).forEach(drawPath);
+        inputElement.value.split('\n').map(x => x.split(",").map(x => x.replace(/\s/g, "")).filter(x => /[A-Z][+-]?\d+/i.test(x))).forEach(drawPath);
 
         console.log(getClosestIntersection());
     });
@@ -168,17 +221,20 @@ if (document) {
                     y: y * (size + pad) + size,
                 };
 
-                const cOffset = (size - stroke) / 2;
-
                 if (!node) {
                     return;
                 }
 
                 node.forEach(segment => {
-                    let args = [ segment.extremity ? size / 2 : size, stroke ];
-
+                    const length = segment.extremity ? size / 2 : size;
                     const newPos = { ...pos };
-                    newPos[segment.axis === Axis.X ? Axis.Y : Axis.X] += cOffset;
+
+                    {
+                        /** center the segment in his cell */
+                        const perpendicular = segment.axis === Axis.X ? Axis.Y : Axis.X;
+                        newPos[perpendicular] += (size - stroke) / 2;
+                    }
+
                     if (segment.extremity > 0) {
                         newPos[segment.axis] += size * segment.extremity / 2;
                     }
@@ -189,8 +245,8 @@ if (document) {
                         context.fillStyle = "blue";
                     }
 
-                    // @ts-ignore
-                    context.fillRect(newPos.x, newPos.y, ...(segment.axis === Axis.X ? args : args.reverse()));
+                    const args: [ number, number ] = segment.axis === Axis.X ? [ length, stroke ] : [ stroke, length ];
+                    context.fillRect(newPos.x, newPos.y, ...args);
                 });
             });
         });
