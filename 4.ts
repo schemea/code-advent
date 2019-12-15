@@ -7,11 +7,36 @@
     const length = 6;
 
     function hasDouble(password: number[]): boolean {
-        return password.some((value, index) => value = password[index + 1]);
+        return password.some((value, index) => value === password[index + 1] && value !== password[index + 2] && value !== password[index - 1]);
+    }
+
+    function getDoublePosition(password: number[]) {
+        let digit: number;
+        let index = -1;
+
+        for (let i = 0; i < password.length; i++) {
+            const value = password[i];
+            if (value !== digit) {
+                if (i - index > 1) {
+                    return index;
+                } else {
+                    digit = value;
+                    index = i;
+                }
+            } else if (i - index > 1) {
+                index = -1;
+            }
+        }
+
+        return index < password.length - 1 ? index : -1;
     }
 
     function last<T>(arr: T[]): T | undefined {
         return arr[arr.length - 1];
+    }
+
+    function beforeLast<T>(arr: T[]): T | undefined {
+        return arr[arr.length - 2];
     }
 
     function first<T>(arr: T[]): T | undefined {
@@ -45,8 +70,18 @@
             out.push(i);
         }
 
-        if (password.length === length - 1 && !hasDouble(password)) {
-            out = out.filter(value => value !== last(password));
+        {
+            const doublePosition = getDoublePosition(password);
+
+            if (doublePosition === length - 3) {
+                out = out.filter(value => value !== last(password));
+            } else if (password.length === length - 1 && doublePosition === -1) {
+                if (beforeLast(password) === last(password)) {
+                    out = []
+                } else {
+                    out = [ last(password) ];
+                }
+            }
         }
 
         if (canBeInferiorToMin(password)) {
