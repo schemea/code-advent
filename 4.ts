@@ -156,8 +156,6 @@
 
     console.log(possibilities.length);
 
-    const out = possibilities.map(asNumber);
-
     debugger;
 }
 
