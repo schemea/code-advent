@@ -121,33 +121,38 @@
         possibilities.forEach(password => {
             const value = asNumber(password);
 
-            if (password.some(isNaN)) {
+            function error() {
                 debugger;
+                console.error("invalid password:", value);
+            }
+
+            if (password.some(isNaN)) {
+                error();
             }
 
             if (isNaN(value)) {
-                debugger;
+                error();
             }
 
             if (password.length !== length) {
-                debugger;
+                error();
             }
 
             if (value < min) {
-                debugger;
+                error();
             }
 
             if (value > max) {
-                debugger;
+                error();
             }
 
             if (!hasDouble(password)) {
-                debugger;
+                error();
             }
 
             /** never decrease */
             if (password.some((digit, index) => password[index - 1] && digit < password[index - 1])) {
-                debugger;
+                error();
             }
         });
     }
