@@ -6,11 +6,6 @@ enum OP {
     FINISHED = 99
 }
 
-enum Enum {
-    B = 0b01,
-    C = 0b10
-}
-
 function execOP(memory: number[], offset: number): number {
     const op = memory[offset] as OP;
     offset++;
