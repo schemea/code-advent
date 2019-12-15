@@ -125,35 +125,14 @@
                 debugger;
                 console.error("invalid password:", value);
             }
-
-            if (password.some(isNaN)) {
-                error();
-            }
-
-            if (isNaN(value)) {
-                error();
-            }
-
-            if (password.length !== length) {
-                error();
-            }
-
-            if (value < min) {
-                error();
-            }
-
-            if (value > max) {
-                error();
-            }
-
-            if (!hasDouble(password)) {
-                error();
-            }
-
+            if (password.some(isNaN)) error();
+            if (isNaN(value)) error();
+            if (password.length !== length) error();
+            if (value < min) error();
+            if (value > max) error();
+            if (!hasDouble(password)) error();
             /** never decrease */
-            if (password.some((digit, index) => password[index - 1] && digit < password[index - 1])) {
-                error();
-            }
+            if (password.some((digit, index) => password[index - 1] && digit < password[index - 1])) error();
         });
     }
 
