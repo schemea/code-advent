@@ -5,9 +5,14 @@
     };
 
     const length = 6;
+    const DOUBLE_ONLY = true;
 
     function hasDouble(password: number[]): boolean {
         return password.some((value, index) => value === password[index + 1] && value !== password[index + 2] && value !== password[index - 1]);
+    }
+
+    function hasDoubleOrMore(password: number[]) {
+        return password.some((value, index) => value === password[index + 1])
     }
 
     function getDoublePosition(password: number[]) {
@@ -17,7 +22,7 @@
         for (let i = 0; i < password.length; i++) {
             const value = password[i];
             if (value !== digit) {
-                if (i - index > 1) {
+                if (index !== -1 && i - index > 1) {
                     return index;
                 } else {
                     digit = value;
@@ -60,7 +65,7 @@
     }
 
     function asNumber(password: number[]): number {
-        return password.reduce((value, digit, index) => value + digit * 10 ** (5 - index), 0)
+        return password.reduce((value, digit, index) => value + digit * 10 ** (length - 1 - index), 0)
     }
 
     function getPossibleDigits(password: number[]) {
@@ -70,9 +75,8 @@
             out.push(i);
         }
 
-        {
+        if (DOUBLE_ONLY) {
             const doublePosition = getDoublePosition(password);
-
             if (doublePosition === length - 3) {
                 out = out.filter(value => value !== last(password));
             } else if (password.length === length - 1 && doublePosition === -1) {
@@ -81,6 +85,10 @@
                 } else {
                     out = [ last(password) ];
                 }
+            }
+        } else {
+            if (password.length === length - 1 && !hasDoubleOrMore(password)) {
+                out = [ last(password) ];
             }
         }
 
@@ -121,7 +129,7 @@
                 debugger;
             }
 
-            if (password.length !== 6) {
+            if (password.length !== length) {
                 debugger;
             }
 
@@ -143,7 +151,6 @@
             }
         });
     }
-
 
     /** OUTPUT */
 
