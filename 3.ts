@@ -206,11 +206,52 @@ if (typeof document !== "undefined") {
         return Object.keys(obj).map(x => parseInt(x)).filter(x => !isNaN(x)).sort((a, b) => a - b);
     }
 
+    function computeExtremity(axis: Axis, predicate: (a: number, b: number) => number) {
+        let out = 0;
+
+        switch (axis) {
+            case Axis.X:
+                for (let x in grid) {
+                    out = predicate(out, x);
+                }
+                break;
+            case Axis.Y:
+                for (let x in grid) {
+                    for (let y in grid[x]) {
+                        out = predicate(out, y);
+                    }
+                }
+                break;
+            default:
+                throw "invalid axis: " + axis;
+        }
+
+        return out;
+    }
+
     function drawGrid() {
         context.save();
         context.resetTransform();
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.restore();
+
+        const min = {
+            x: computeExtremity(Axis.X, Math.min),
+            y: computeExtremity(Axis.Y, Math.min),
+        };
+
+        const max = {
+            x: computeExtremity(Axis.X, Math.max),
+            y: computeExtremity(Axis.Y, Math.max),
+        };
+
+        context.save();
+
+        context.translate(min.x, min.y);
+        context.scale(
+            Math.max(1, innerWidth / (max.x - min.x)),
+            Math.max(1, innerHeight / (max.y - min.y)),
+        );
 
         asArray(grid).forEach(x => {
             asArray(grid[x]).forEach(y => {
@@ -250,6 +291,8 @@ if (typeof document !== "undefined") {
                 });
             });
         });
+
+        context.restore();
 
         requestAnimationFrame(time => drawGrid());
     }
