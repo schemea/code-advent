@@ -212,13 +212,13 @@ if (typeof document !== "undefined") {
         switch (axis) {
             case Axis.X:
                 for (let x in grid) {
-                    out = predicate(out, x);
+                    out = predicate(out, parseInt(x));
                 }
                 break;
             case Axis.Y:
                 for (let x in grid) {
                     for (let y in grid[x]) {
-                        out = predicate(out, y);
+                        out = predicate(out, parseInt(y));
                     }
                 }
                 break;
