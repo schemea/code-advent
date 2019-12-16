@@ -1,11 +1,19 @@
-{
+enum Mode {
+    PART_ONE,
+    PART_TWO,
+}
+
+function getPossiblePasswords(range: { min: number, max: number }, mode: Mode = Mode.PART_TWO) {
+    function asArray(value: number) {
+        return [ ...value.toString() ].map(digit => parseInt(digit));
+    }
+
     const input = {
-        min: [ 2, 3, 1, 8, 3, 2 ],
-        max: [ 7, 6, 7, 3, 4, 6 ],
+        min: asArray(range.min),
+        max: asArray(range.max),
     };
 
     const length = 6;
-    const DOUBLE_ONLY = true;
 
     function hasDouble(password: number[]): boolean {
         return password.some((value, index) => value === password[index + 1] && value !== password[index + 2] && value !== password[index - 1]);
@@ -44,15 +52,11 @@
         return arr[arr.length - 2];
     }
 
-    function first<T>(arr: T[]): T | undefined {
-        return arr[0];
-    }
-
-    function canBeSuperiorToMax(password: number[]) {
+    function canBeMoreThanMax(password: number[]) {
         return password.reduce((boolean, digit, index) => boolean && digit === input.max[index], true);
     }
 
-    function canBeInferiorToMin(password: number[]) {
+    function canBeLessThanMin(password: number[]) {
         return password.reduce((boolean, digit, index) => boolean && digit === input.min[index], true);
     }
 
@@ -75,43 +79,46 @@
             out.push(i);
         }
 
-        if (DOUBLE_ONLY) {
-            const doublePosition = getDoublePosition(password);
-            if (doublePosition === length - 3) {
-                out = out.filter(value => value !== last(password));
-            } else if (password.length === length - 1 && doublePosition === -1) {
-                if (beforeLast(password) === last(password)) {
-                    out = []
-                } else {
+        switch (mode) {
+            case Mode.PART_ONE:
+                if (password.length === length - 1 && !hasDoubleOrMore(password))
                     out = [ last(password) ];
+                break;
+            case Mode.PART_TWO: {
+                const doublePosition = getDoublePosition(password);
+                if (doublePosition === length - 3) {
+                    out = out.filter(value => value !== last(password));
+                } else if (password.length === length - 1 && doublePosition === -1) {
+                    if (beforeLast(password) === last(password)) {
+                        out = []
+                    } else {
+                        out = [ last(password) ];
+                    }
                 }
-            }
-        } else {
-            if (password.length === length - 1 && !hasDoubleOrMore(password)) {
-                out = [ last(password) ];
+                break;
             }
         }
 
-        if (canBeInferiorToMin(password)) {
+        if (canBeLessThanMin(password)) {
             out = out.filter(value => value >= min(password))
         }
 
-        if (canBeSuperiorToMax(password)) {
+        if (canBeMoreThanMax(password)) {
             out = out.filter(value => value <= max(password))
         }
 
         return out;
     }
 
-    function computePossiblePasswords(password: number[] = []): number[][] {
+    function getPossiblePasswords(password: number[] = []): number[][] {
         if (password.length === 5) {
             return getPossibleDigits(password).map(digit => [ ...password, digit ]);
         } else {
-            return [].concat(...getPossibleDigits(password).map(digit => computePossiblePasswords([ ...password, digit ])));
+            return [].concat(...getPossibleDigits(password).map(digit => getPossiblePasswords([ ...password, digit ])));
         }
     }
 
-    const possibilities = computePossiblePasswords();
+    const possibilities = getPossiblePasswords();
 
     /** CHECKING */
     {
@@ -125,21 +132,33 @@
                 debugger;
                 console.error("invalid password:", value);
             }
+
             if (password.some(isNaN)) error();
             if (isNaN(value)) error();
             if (password.length !== length) error();
             if (value < min) error();
             if (value > max) error();
-            if (!hasDouble(password)) error();
+
+            switch (mode) {
+                case Mode.PART_ONE:
+                    if (!hasDoubleOrMore(password)) error();
+                    break;
+                case Mode.PART_TWO:
+                    if (!hasDouble(password)) error();
+                    break;
+            }
+
             /** never decrease */
             if (password.some((digit, index) => password[index - 1] && digit < password[index - 1])) error();
         });
     }
 
-    /** OUTPUT */
-
-    console.log(possibilities.length);
-
-    debugger;
+    return possibilities;
 }
 
+const result = getPossiblePasswords({
+    min: 231832,
+    max: 767346,
+}, Mode.PART_TWO);
+
+console.log(result.length);
